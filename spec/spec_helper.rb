@@ -4,7 +4,7 @@ require 'irb'
 
 Dir["#{__dir__}/lib/**/*.rb"].each { |file| require file }
 
-RSpec.configure do |config|r.
+RSpec.configure do |config|
   config.expect_with :rspec do |expectations|
     expectations.include_chain_clauses_in_custom_matcher_descriptions = true
   end
