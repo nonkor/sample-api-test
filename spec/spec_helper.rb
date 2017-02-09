@@ -2,6 +2,9 @@ require 'httparty'
 require 'json'
 require 'irb'
 
+require 'lib/api_helper.rb'
+ApiHelper.load_credentials
+
 Dir["#{__dir__}/lib/**/*.rb"].each { |file| require file }
 
 RSpec.configure do |config|
