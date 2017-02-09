@@ -15,10 +15,12 @@ RSpec.describe 'Github API Pull Requests' do
   end
 
   def close_open_PRs
+    numbers_of_open_PRs.each { |number| close_PR(number) }
+  end
+
+  def numbers_of_open_PRs
     response = GithubApi.get "/repos/#{owner}/#{repo}/pulls"
-    JSON.parse(response.body)
-      .map { |pr| pr['number'] }
-      .each { |number| close_PR(number) }
+    JSON.parse(response.body).map { |pr| pr['number'] }
   end
 
   def close_PR(number, terminate: false)
@@ -68,7 +70,17 @@ RSpec.describe 'Github API Pull Requests' do
     end
   end
 
-  # GET /repos/:owner/:repo/pulls/:number
+  describe 'GET /repos/:owner/:repo/pulls/:number' do
+    before { create_PR(options) }
+
+    subject { api.get "/repos/#{owner}/#{repo}/pulls/#{number}" }
+    let(:number) { numbers_of_open_PRs.last }
+
+    it_behaves_like 'successful query'
+    it 'returns details about specified PR' do
+      expect(json['state']).to eq 'open'
+    end
+  end
 
   describe 'POST /repos/:owner/:repo/pulls' do
     subject { api.post "/repos/#{owner}/#{repo}/pulls", :body => options.to_json }
