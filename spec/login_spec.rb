@@ -5,7 +5,8 @@ RSpec.describe 'Github API Pull Requests' do
   let(:repo) { ApiHelper.repo }
   let(:head) { 'test' }
   let(:base) { 'master' }
-  let(:options) do
+  let(:options) { {} }
+  let(:create_options) do
     {
       'title' => 'test PR',
       'body' => 'Please pull this in!',
@@ -27,15 +28,14 @@ RSpec.describe 'Github API Pull Requests' do
     GithubApi.patch "/repos/#{owner}/#{repo}/pulls/#{number}", :body => {state: 'closed'}.to_json
   end
 
-  def create_PR(options)
-    GithubApi.post "/repos/#{owner}/#{repo}/pulls", :body => options.to_json
+  def create_PR
+    GithubApi.post "/repos/#{owner}/#{repo}/pulls", :body => create_options.to_json
   end
 
   before { close_open_PRs }
 
   describe 'GET /repos/:owner/:repo/pulls' do
     subject { api.get "/repos/#{owner}/#{repo}/pulls", :query => options }
-    let(:options) { {} }
 
     shared_examples 'with "open" state' do
       include_examples 'empty result'
@@ -71,19 +71,20 @@ RSpec.describe 'Github API Pull Requests' do
   end
 
   describe 'GET /repos/:owner/:repo/pulls/:number' do
-    before { create_PR(options) }
+    before { create_PR }
 
     subject { api.get "/repos/#{owner}/#{repo}/pulls/#{number}" }
     let(:number) { numbers_of_open_PRs.last }
 
-    it_behaves_like 'successful query'
     it 'returns details about specified PR' do
+      expect(subject).to be_ok
       expect(json['state']).to eq 'open'
     end
   end
 
   describe 'POST /repos/:owner/:repo/pulls' do
     subject { api.post "/repos/#{owner}/#{repo}/pulls", :body => options.to_json }
+    let(:options) { create_options }
 
     let(:params) do
       options.reject {|key, _| !%i(title body).include? key }
@@ -101,7 +102,7 @@ RSpec.describe 'Github API Pull Requests' do
     end
 
     context 'when PR was created before' do
-      before { create_PR(options) }
+      before { create_PR }
 
       let(:message) { subject.parsed_response['message'] }
       let(:error_messages) do
@@ -116,5 +117,16 @@ RSpec.describe 'Github API Pull Requests' do
     end
   end
 
-  # PATCH /repos/:owner/:repo/pulls/:number
+  describe 'PATCH /repos/:owner/:repo/pulls/:number' do
+    before { create_PR }
+
+    subject { api.patch "/repos/#{owner}/#{repo}/pulls/#{number}", body: options.to_json }
+    let(:number) { numbers_of_open_PRs.last }
+    let(:options) { {state: 'closed'} }
+
+    it 'updates data of specified PR' do
+      expect(subject).to be_ok
+      expect(json['state']).to eq 'closed'
+    end
+  end
 end
